@@ -1,4 +1,7 @@
 #include "Signal.h"
+#include <atomic>
+#include <functional>
+#include <unordered_map>
 /*
 template<class ... ArgTypes>
 class _connection_base1
@@ -104,6 +107,15 @@ template<class dest_type1, class arg1_type1> std::list<_connection1<dest_type1, 
 
 int main()
 {
+    typedef std::function<void()> Callback;
+    typedef std::uint64_t CallbackId;
+    std::unordered_map<CallbackId, Callback> mCallbacks;
+    std::unordered_map<CallbackId, Callback>* llbacks;
+
+
+    std::cout << "mCallbacks size =" << sizeof(mCallbacks) << std::endl;
+    std::cout << "llbacks size =" << sizeof(llbacks) << std::endl;
+
     DataWnd dataWnd;
 
     NetAdapter::GetInstance()->SetNetState(0);
