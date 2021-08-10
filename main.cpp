@@ -107,12 +107,18 @@ template<class dest_type1, class arg1_type1> std::list<_connection1<dest_type1, 
 
 int main()
 {
+    uint64_t test =  uint64_t(-1);
+
     typedef std::function<void()> Callback;
     typedef std::uint64_t CallbackId;
     std::unordered_map<CallbackId, Callback> mCallbacks;
     std::unordered_map<CallbackId, Callback>* llbacks;
 
+    std::cout << "uint64_t(-1) = " << uint64_t(-1) << std::endl;
+    std::cout << "uint64_t(-1) >1 = " << (uint64_t(-1)>99) << std::endl;
+    std::cout << "function size = " << sizeof(std::function<void(int, bool)>) << std::endl;
 
+    std::cout << "vector size =" << sizeof(std::vector<int>) << std::endl;
     std::cout << "mCallbacks size =" << sizeof(mCallbacks) << std::endl;
     std::cout << "llbacks size =" << sizeof(llbacks) << std::endl;
 

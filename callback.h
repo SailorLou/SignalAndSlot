@@ -1,64 +1,90 @@
+
 #pragma once
-#include <atomic>
+
 #include <functional>
-#include <unordered_map>
+#include <vector>
 #include <utility>
 
+typedef INVALID_CALLBACKID 0;
+
+/**
+ * \brief thread unsafe
+ * order unstable, don't depend on callback register order.
+ */
 template <class... CallbackArgs>
 class EventCallbackHandler final
 {
 public:
-	typedef std::function<void(CallbackArgs...)> Callback;
-	typedef std::uint64_t CallbackId;
+    typedef std::function<void(CallbackArgs...)> Callback;
+    typedef std::uint32_t CallbackId;
 
-	EventCallbackHandler() = default;
-	~EventCallbackHandler()
-	{
-		safe_delete(mCallbacks);
-	}
+    EventCallbackHandler() = default;
+    ~EventCallbackHandler() = default;
 
-	CallbackId Register(Callback cb) // same as connect method in signal and slot mechanism
-	{
-		if (mCallbacks == nullptr)
-			mCallbacks = new std::unordered_map<CallbackId, Callback>;
+    /**
+     * \brief same as connect method in signal and slot mechanism
+     */
+    CallbackId Register(Callback&& cb)
+    {
+        // valid check
+        if (cb)
+        {
+            mCallbacks.emplace_back(++mCallbackID, std::move(cb));
+            return mCallbackID;
+        }
+        return INVALID_CALLBACKID;
+    }
 
-		CallbackId id(nextId());
+    /**
+     * \brief same as connect method in signal and slot mechanism
+     */
+    CallbackId Register(const Callback& cb)
+    {
+        // valid check
+        if (cb)
+        {
+            mCallbacks.emplace_back(++mCallbackID, cb);
+            return mCallbackID;
+        }
 
-		mCallbacks->emplace(id, cb);
+        return INVALID_CALLBACKID;
+    }
 
-		return id;
-	}
+    /**
+     * \brief pick last callback to replace remove one
+     * pop last callback
+     * same as disconnect method in signal and slot mechanism.
+     */
+    bool Unregister(CallbackId id)
+    {
+        auto iter = mCallbacks.begin();
+        for (; iter != mCallbacks.end(); iter++)
+        {
+            if (iter->first == id)
+            {
+                // move last callback inplace
+                if (iter + 1 != mCallbacks.end())
+                {
+                    *iter = std::move(*mCallbacks.rbegin());
+                }
 
-	bool Unregister(CallbackId id) // same as disconnect method in signal and slot mechanism
-	{
-		if (mCallbacks == nullptr)
-			return false;
+                mCallbacks.pop_back();
+                return true;
+            }
+        }
 
-		if (auto it = mCallbacks->find(id) != mCallbacks->end())
-		{
-			mCallbacks->erase(it);
-		}
+        return true;
+    }
 
-		return false;
-	}
-
-	void Run(CallbackArgs... args) // same as emit method in signal and slot mechanism
-	{
-		if (mCallbacks == nullptr)
-			return;
-
-		for (const auto& [id, cb] : *mCallbacks)
-		{
-			cb(std::forward<CallbackArgs>(args)...);
-		}
-	}
+    void Run(CallbackArgs... args) // same as emit method in signal and slot mechanism
+    {
+        for (const auto& [id, cb] : mCallbacks)
+        {
+            cb(std::forward<CallbackArgs>(args)...);
+        }
+    }
 
 private:
-	std::unordered_map<CallbackId, Callback>* mCallbacks{ nullptr }; //save memory as soon as possible for basic class
-
-	static CallbackId nextId()
-	{
-		static std::atomic<CallbackId> gId(0);
-		return ++gId;
-	}
+    std::uint32_t mCallbackID{};
+    std::vector<std::pair<int, Callback>> mCallbacks{};
 };
